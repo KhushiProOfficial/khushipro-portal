@@ -44,6 +44,7 @@
     <h1>KHUSHI PRO PORTAL</h1>
     <p>Official 1-Click Web3 On-Chain Gateway</p>
     <button class="btn-connect" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    
     <div class="swap-box">
         <label>You Pay</label>
         <div class="input-row">
@@ -51,7 +52,9 @@
             <span class="token-badge">MATIC</span>
         </div>
     </div>
+    
     <div style="font-size: 20px; color: #a78bfa; margin: 10px 0;">⬇️</div>
+    
     <div class="swap-box">
         <label>You Receive</label>
         <div class="input-row">
@@ -59,39 +62,58 @@
             <span class="token-badge" style="color: #a855f7;">$KHPRO</span>
         </div>
     </div>
-    <button class="btn-swap" id="swapBtn" onclick="executeSwap()" disabled>Swap Now</button>
-    <div class="status" id="statusText">Please connect your wallet to start.</div>
+    
+    <button class="btn-swap" id="swapBtn" onclick="executeSwap()">Swap Now</button>
+    <div class="status" id="statusText">Ready to connect.</div>
 </div>
+
 <script>
-    const KHPRO_CA = "0x7439b1994d294a01e5a7f23947dbada0a3e014b"; // Your verified CA
+    const KHPRO_CA = "0x7439b1994d294a01e5a7f23947dbada0a3e014b"; 
     const WMATIC_CA = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
     const ROUTER_CA = "0xa5E0829CaCEd8fFDD4De3c43696c57F7d7A678ff";
     let provider, signer, userAddress;
+
     async function connectWallet() {
         if (typeof window.ethereum !== 'undefined') {
             try {
                 provider = new ethers.providers.Web3Provider(window.ethereum);
                 await provider.send("eth_requestAccounts", []);
-                signer = provider.getSigner(); userAddress = await signer.getAddress();
+                signer = provider.getSigner(); 
+                userAddress = await signer.getAddress();
                 document.getElementById("connectBtn").innerText = userAddress.substring(0,6) + "..." + userAddress.substring(38);
                 document.getElementById("statusText").innerText = "Wallet connected successfully!";
-                document.getElementById("swapBtn").disabled = false;
-            } catch (error) { document.getElementById("statusText").innerText = "Connection failed."; }
-        } else { document.getElementById("statusText").innerText = "Please open inside Trust Wallet Browser."; }
+            } catch (error) { 
+                document.getElementById("statusText").innerText = "Connection failed."; 
+            }
+        } else { 
+            document.getElementById("statusText").innerText = "Please open inside Trust Wallet Browser."; 
+        }
     }
+
     function calculateSwap() {
         const input = document.getElementById("inputAmount").value;
-        if(input > 0) { document.getElementById("outputAmount").value = (input * 1000).toFixed(2); }
-        else { document.getElementById("outputAmount").value = ""; }
+        if(input > 0) { 
+            document.getElementById("outputAmount").value = (input * 1000).toFixed(2); 
+        } else { 
+            document.getElementById("outputAmount").value = ""; 
+        }
     }
+
     async function executeSwap() {
         const amountIn = document.getElementById("inputAmount").value;
+        if(!amountIn || amountIn <= 0) return;
         try {
+            if(!signer) {
+                await connectWallet();
+            }
             document.getElementById("statusText").innerText = "Confirm transaction in wallet...";
             const routerContract = new ethers.Contract(ROUTER_CA, ["function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"], signer);
             const tx = await routerContract.swapExactETHForTokens(0, [WMATIC_CA, KHPRO_CA], userAddress, Math.floor(Date.now() / 1000) + 1200, { value: ethers.utils.parseEther(amountIn) });
-            await tx.wait(); document.getElementById("statusText").innerText = "🎉 Swap Successful!";
-        } catch (error) { document.getElementById("statusText").innerText = "Transaction failed."; }
+            await tx.wait(); 
+            document.getElementById("statusText").innerText = "🎉 Swap Successful!";
+        } catch (error) { 
+            document.getElementById("statusText").innerText = "Transaction failed."; 
+        }
     }
 </script>
 </body>
