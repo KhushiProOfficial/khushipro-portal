@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KHUSHI PRO ($KHPRO) - Official Buy Portal</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh;
+        }
+        .container {
+            background: rgba(30, 41, 59, 0.7); padding: 30px; border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1); width: 100%; max-width: 420px; text-align: center;
+        }
+        h1 { font-size: 24px; margin-bottom: 5px; color: #a78bfa; }
+        p { font-size: 14px; color: #94a3b8; margin-top: 0; margin-bottom: 25px; }
+        .btn-connect {
+            background: linear-gradient(90deg, #6366f1 0%, #a855f7 100%);
+            border: none; color: white; padding: 12px 24px; font-size: 16px;
+            font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; margin-bottom: 20px;
+        }
+        .swap-box {
+            background: rgba(15, 23, 42, 0.6); padding: 15px; border-radius: 16px; text-align: left; margin-bottom: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        label { font-size: 12px; color: #64748b; font-weight: bold; }
+        .input-row { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+        input { background: transparent; border: none; color: white; font-size: 20px; width: 60%; outline: none; }
+        .token-badge { background: #334155; padding: 6px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; }
+        .btn-swap {
+            background: #22c55e; border: none; color: white; padding: 14px; font-size: 18px;
+            font-weight: bold; border-radius: 16px; cursor: pointer; width: 100%; margin-top: 10px;
+        }
+        .status { margin-top: 15px; font-size: 13px; color: #fbbf24; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>KHUSHI PRO PORTAL</h1>
+    <p>Official 1-Click Web3 On-Chain Gateway</p>
+    <button class="btn-connect" id="connectBtn" onclick="connectWallet()">Connect Wallet</button>
+    <div class="swap-box">
+        <label>You Pay</label>
+        <div class="input-row">
+            <input type="number" id="inputAmount" placeholder="0.0" oninput="calculateSwap()">
+            <span class="token-badge">MATIC</span>
+        </div>
+    </div>
+    <div style="font-size: 20px; color: #a78bfa; margin: 10px 0;">⬇️</div>
+    <div class="swap-box">
+        <label>You Receive</label>
+        <div class="input-row">
+            <input type="number" id="outputAmount" placeholder="0.0" readonly>
+            <span class="token-badge" style="color: #a855f7;">$KHPRO</span>
+        </div>
+    </div>
+    <button class="btn-swap" id="swapBtn" onclick="executeSwap()" disabled>Swap Now</button>
+    <div class="status" id="statusText">Please connect your wallet to start.</div>
+</div>
+<script>
+    const KHPRO_CA = "0x7439b1994d294a01e5a7f23947dbada0a3e014b"; // Your verified CA
+    const WMATIC_CA = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
+    const ROUTER_CA = "0xa5E0829CaCEd8fFDD4De3c43696c57F7d7A678ff";
+    let provider, signer, userAddress;
+    async function connectWallet() {
+        if (typeof window.ethereum !== 'undefined') {
+            try {
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                signer = provider.getSigner(); userAddress = await signer.getAddress();
+                document.getElementById("connectBtn").innerText = userAddress.substring(0,6) + "..." + userAddress.substring(38);
+                document.getElementById("statusText").innerText = "Wallet connected successfully!";
+                document.getElementById("swapBtn").disabled = false;
+            } catch (error) { document.getElementById("statusText").innerText = "Connection failed."; }
+        } else { document.getElementById("statusText").innerText = "Please open inside Trust Wallet Browser."; }
+    }
+    function calculateSwap() {
+        const input = document.getElementById("inputAmount").value;
+        if(input > 0) { document.getElementById("outputAmount").value = (input * 1000).toFixed(2); }
+        else { document.getElementById("outputAmount").value = ""; }
+    }
+    async function executeSwap() {
+        const amountIn = document.getElementById("inputAmount").value;
+        try {
+            document.getElementById("statusText").innerText = "Confirm transaction in wallet...";
+            const routerContract = new ethers.Contract(ROUTER_CA, ["function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline) external payable returns (uint[] memory amounts)"], signer);
+            const tx = await routerContract.swapExactETHForTokens(0, [WMATIC_CA, KHPRO_CA], userAddress, Math.floor(Date.now() / 1000) + 1200, { value: ethers.utils.parseEther(amountIn) });
+            await tx.wait(); document.getElementById("statusText").innerText = "🎉 Swap Successful!";
+        } catch (error) { document.getElementById("statusText").innerText = "Transaction failed."; }
+    }
+</script>
+</body>
+</html>
